@@ -45,7 +45,7 @@ def get_rates():
             timeout=10
         ).json()
 
-        ton_usd = ton_data["the-open-network"]["usd"]
+        ton_usd = ton_data.get("the-open-network", {}).get("usd")
 
         usd_data = requests.get(
             "https://open.er-api.com/v6/latest/USD",
@@ -54,12 +54,10 @@ def get_rates():
 
         usd_uzs = usd_data["rates"]["UZS"]
 
-        ton_uzs = ton_usd * usd_uzs
-
-        return ton_usd, ton_uzs, usd_uzs
+        return ton_usd, ton_usd * usd_uzs, usd_uzs
 
     except:
-        return 0, 0, 0
+        return None, None, None
 
 # 🧠 Kalkulyator
 def smart_calc(text, ton_usd, usd_uzs):
