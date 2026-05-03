@@ -9,11 +9,12 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     KeyboardButton,
     InlineKeyboardMarkup,
-    InlineKeyboardButton
+    InlineKeyboardButton,
+    CallbackQuery
 )
 from aiogram.filters import Command
 
-# 🔐 TOKEN (Render ENV)
+# 🔐 TOKEN
 TOKEN = os.getenv("BOT_TOKEN")
 
 if not TOKEN:
@@ -22,7 +23,7 @@ if not TOKEN:
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# 🔘 Reply keyboard (bottom button)
+# 🔘 Keyboard
 keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="🔄 Yangilash")]
@@ -30,14 +31,14 @@ keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# 🔘 Inline START button (tapada chiqadi)
+# 🔘 INLINE START
 start_inline = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="🚀 Start", callback_data="start")]
     ]
 )
 
-# 📊 Kurs olish
+# 📊 KURS
 def get_rates():
     try:
         ton_data = requests.get(
@@ -54,12 +55,15 @@ def get_rates():
 
         usd_uzs = usd_data["rates"]["UZS"]
 
-        return ton_usd, ton_usd * usd_uzs, usd_uzs
+        ton_uzs = ton_usd * usd_uzs
+
+        return ton_usd, ton_uzs, usd_uzs
 
     except:
         return None, None, None
 
-# 🧠 Kalkulyator
+
+# 🧠 CALC
 def smart_calc(text, ton_usd, usd_uzs):
     text = text.lower()
 
@@ -75,71 +79,80 @@ def smart_calc(text, ton_usd, usd_uzs):
 
     return None
 
-# 🚀 /start command
+
+# 🚀 START
 @dp.message(Command("start"))
 async def start(message: Message):
     await message.answer(
-        "👋 Xush kelibsiz!\n💰 TON + USD live kurs bot",
+        "👋 Xush kelibsiz!\n💰 TON + USD bot",
         reply_markup=keyboard
     )
 
     await message.answer(
-        "👇 Boshlash uchun tugmani bosing:",
+        "👇 Start bosing",
         reply_markup=start_inline
     )
 
-# 🚀 INLINE START BUTTON CLICK
+
+# 🚀 INLINE START
 @dp.callback_query(F.data == "start")
-async def start_btn(call):
+async def start_btn(call: CallbackQuery):
     await call.message.answer(
-        "🚀 Bot ishga tushdi!\nEndi TON yoki USD yozing",
+        "🚀 Bot ishga tushdi!\nTON yoki USD yozing",
         reply_markup=keyboard
     )
 
-# 🔄 UPDATE BUTTON
+
+# 🔄 YANGILASH (FAKAT KURS)
 @dp.message(F.text == "🔄 Yangilash")
 async def refresh(message: Message):
     ton_usd, ton_uzs, usd_uzs = get_rates()
 
-    if ton_usd == 0:
+    if not ton_usd:
         await message.answer("❌ Kurs yuklanmadi")
         return
 
+    # ⚠️ FAqat TON + USD kurs
     await message.answer(
-        f"💰 KRIPTO KURS\n\n"
+        f"📊 LIVE KURS\n\n"
         f"1 TON = {ton_usd}$\n"
         f"≈ {int(ton_uzs)} so'm\n\n"
-        f"💵 1 USD = {usd_uzs} so'm"
+        f"1 USD = {usd_uzs} so'm"
     )
 
-# 💬 MAIN HANDLER
+
+# 💬 MESSAGE HANDLER
 @dp.message(F.text)
 async def handler(message: Message):
     text = message.text.lower()
 
     ton_usd, ton_uzs, usd_uzs = get_rates()
 
-    if ton_usd == 0:
-        await message.reply("❌ Internet yoki API muammo")
+    if not ton_usd:
+        await message.reply("❌ API muammo")
         return
 
+    # calculator
     result = smart_calc(text, ton_usd, usd_uzs)
     if result:
         await message.reply(result)
         return
 
+    # simple TON
     if "ton" in text:
         await message.reply(
             f"💰 1 TON = {ton_usd}$\n≈ {int(ton_uzs)} so'm"
         )
         return
 
+    # simple USD
     if "usd" in text:
         await message.reply(
             f"💵 1 USD = {usd_uzs} so'm"
         )
 
-# ▶️ RUN
+
+# ▶️ RUN FIXED
 async def main():
     await dp.start_polling(bot)
 
