@@ -7,8 +7,8 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import Command
 
-# 🔐 TOKEN (hostingda ENV qilish tavsiya)
-TOKEN = os.getenv("8747721875:AAEORtPUQxfNZue7HkLzxNnlnIUjo3LdPjU")
+# 🔐 TOKEN (Render ENV dan olinadi)
+TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -21,7 +21,7 @@ keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# 📊 Kurs
+# 📊 Kurs olish
 def get_rates():
     ton_data = requests.get(
         "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd"
@@ -43,11 +43,13 @@ def get_rates():
 def smart_calc(text, ton_usd, usd_uzs):
     text = text.lower()
 
+    # TON hisob
     ton = re.search(r"([\d\.]+)\s*ton", text)
     if ton:
         amount = float(ton.group(1))
         return f"💰 {amount} TON ≈ {int(amount * ton_usd * usd_uzs)} so'm"
 
+    # USD hisob
     usd = re.search(r"([\d\.]+)\s*usd", text)
     if usd:
         amount = float(usd.group(1))
@@ -55,15 +57,15 @@ def smart_calc(text, ton_usd, usd_uzs):
 
     return None
 
-# 🚀 start
+# 🚀 START
 @dp.message(Command("start"))
 async def start(message: Message):
     await message.answer(
-        "👋 Bot ishga tushdi!\nTON + USD live kurs",
+        "👋 Bot ishga tushdi!\n💰 TON + USD kurs bot",
         reply_markup=keyboard
     )
 
-# 🔄 button
+# 🔄 BUTTON
 @dp.message(F.text == "🔄 Yangilash")
 async def refresh(message: Message):
     ton_usd, ton_uzs, usd_uzs = get_rates()
@@ -75,35 +77,33 @@ async def refresh(message: Message):
         f"💵 1 USD = {usd_uzs} so'm"
     )
 
-# 💬 main handler
+# 💬 MAIN HANDLER
 @dp.message(F.text)
 async def handler(message: Message):
     text = message.text.lower()
 
     ton_usd, ton_uzs, usd_uzs = get_rates()
 
-    # TON
-    if "ton" in text:
-        calc = smart_calc(text, ton_usd, usd_uzs)
-        if calc:
-            await message.reply(calc)
-            return
+    # kalkulyator (12 ton, 10 usd)
+    result = smart_calc(text, ton_usd, usd_uzs)
+    if result:
+        await message.reply(result)
+        return
 
+    # oddiy TON
+    if "ton" in text:
         await message.reply(
             f"💰 1 TON = {ton_usd}$\n≈ {int(ton_uzs)} so'm"
         )
         return
 
-    # USD
+    # oddiy USD
     if "usd" in text:
-        calc = smart_calc(text, ton_usd, usd_uzs)
-        if calc:
-            await message.reply(calc)
-            return
+        await message.reply(
+            f"💵 1 USD = {usd_uzs} so'm"
+        )
 
-        await message.reply(f"💵 1 USD = {usd_uzs} so'm")
-
-# ▶️ run
+# ▶️ RUN
 async def main():
     await dp.start_polling(bot)
 
